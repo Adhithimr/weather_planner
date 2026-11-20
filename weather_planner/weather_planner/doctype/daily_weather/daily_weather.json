@@ -1,0 +1,89 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{city}-{date}",
+ "creation": "2026-11-19 13:25:52.750204",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "city",
+  "date",
+  "max_tempc",
+  "rainfallmm",
+  "max_rain_probability_",
+  "data_quality",
+  "fetched_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "city",
+   "fieldtype": "Link",
+   "label": "City",
+   "options": "City",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "max_tempc",
+   "fieldtype": "Float",
+   "label": "Max Temp(C)"
+  },
+  {
+   "fieldname": "rainfallmm",
+   "fieldtype": "Float",
+   "label": "Rainfall(mm)"
+  },
+  {
+   "fieldname": "max_rain_probability_",
+   "fieldtype": "Int",
+   "label": "Max Rain Probability (%)"
+  },
+  {
+   "default": "Complete",
+   "fieldname": "data_quality",
+   "fieldtype": "Select",
+   "label": "Data Quality",
+   "options": "Complete\nIncomplete"
+  },
+  {
+   "fieldname": "fetched_on",
+   "fieldtype": "Datetime",
+   "label": "Fetched On",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-11-19 13:31:14.671561",
+ "modified_by": "Administrator",
+ "module": "Weather Planner",
+ "name": "Daily Weather",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

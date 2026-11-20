@@ -1,0 +1,413 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;600&display=swap');
+
+    .tc-page {
+        --ink: #1d1b3a;
+        --muted: #5a5780;
+        --violet: #5b4bdb;
+        max-width: 720px;
+        margin: 1.5rem auto 3rem;
+        padding: 0 .5rem;
+        font-family: 'Figtree', system-ui, sans-serif;
+        color: var(--ink);
+    }
+    .tc-title {
+        font-family: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.9rem, 5vw, 2.7rem);
+        line-height: 1.1;
+        margin: 0 0 .5rem;
+        color: var(--ink);
+    }
+    .tc-lede { color: var(--muted); margin: 0 0 1.25rem; font-size: 1.05rem; }
+
+    /* Form */
+    .tc-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: .75rem;
+        align-items: end;
+        background: #fff;
+        padding: 1rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(91, 75, 219, .14);
+    }
+    .tc-form label { font-weight: 600; font-size: .85rem; margin-bottom: .25rem; display: block; }
+    .tc-form .form-control { border-radius: 12px; }
+    .tc-btn {
+        background: var(--violet);
+        color: #fff;
+        border: 0;
+        border-radius: 12px;
+        padding: .72rem 1.4rem;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+    .tc-btn:hover { background: #4a3bc4; }
+    .tc-btn:disabled { opacity: .6; cursor: default; }
+    .tc-page :is(.tc-btn, .tc-chip, .tc-suggest button, input):focus-visible {
+        outline: 3px solid var(--violet);
+        outline-offset: 2px;
+    }
+
+    /* Sky card */
+    .tc-sky {
+        --bg: linear-gradient(165deg, #bfe0ff 0%, #eaf3ff 100%);
+        --sky-ink: #1d1b3a;
+        position: relative;
+        overflow: hidden;
+        margin-top: 1.25rem;
+        padding: 2rem 1.75rem 1.75rem;
+        min-height: 300px;
+        border-radius: 28px;
+        background: var(--bg);
+        color: var(--sky-ink);
+    }
+    .tc-sky[data-mood="sun"]  { --bg: linear-gradient(160deg, #ffd76a 0%, #ffa377 55%, #ff7f9c 100%); --sky-ink: #2a1233; }
+    .tc-sky[data-mood="rain"] { --bg: linear-gradient(170deg, #1f2f66 0%, #3f55a3 60%, #5d75c4 100%); --sky-ink: #ffffff; }
+    .tc-sky[data-mood="hot"]  { --bg: linear-gradient(160deg, #d9381e 0%, #b3123f 100%); --sky-ink: #ffffff; }
+
+    .tc-scene { position: absolute; inset: 0; pointer-events: none; }
+    .tc-sun {
+        position: absolute; top: -50px; right: -50px;
+        width: 210px; height: 210px; border-radius: 50%;
+        background: radial-gradient(circle at 35% 35%, #fff6c9, #ffd23f 55%, #ffb000);
+        box-shadow: 0 0 80px 30px rgba(255, 214, 90, .55);
+        opacity: 0;
+        transition: opacity .4s, scale .4s;
+    }
+    .tc-cloud {
+        position: absolute; width: 140px; height: 44px;
+        background: rgba(255, 255, 255, .92);
+        border-radius: 44px;
+        opacity: 0;
+        transition: opacity .4s;
+        animation: tc-drift 9s ease-in-out infinite alternate;
+    }
+    .tc-cloud::before, .tc-cloud::after { content: ""; position: absolute; background: inherit; border-radius: 50%; }
+    .tc-cloud::before { width: 60px; height: 60px; top: -28px; left: 22px; }
+    .tc-cloud::after  { width: 46px; height: 46px; top: -20px; left: 74px; }
+    .tc-cloud.c1 { top: 170px; right: 40px; }
+    .tc-cloud.c2 { top: 90px; right: 190px; scale: .7; animation-duration: 12s; }
+    @keyframes tc-drift { from { translate: 0 0; } to { translate: -22px 0; } }
+
+    .tc-rain { position: absolute; inset: 0; opacity: 0; transition: opacity .4s; }
+    .tc-rain span {
+        position: absolute; top: -24px; width: 2px; height: 18px;
+        background: linear-gradient(transparent, #d4e3ff);
+        animation: tc-fall 1s linear infinite;
+    }
+    @keyframes tc-fall { to { transform: translateY(420px); } }
+
+    .tc-sky[data-mood="idle"] .tc-sun,
+    .tc-sky[data-mood="sun"] .tc-sun,
+    .tc-sky[data-mood="hot"] .tc-sun { opacity: 1; }
+    .tc-sky[data-mood="hot"] .tc-sun {
+        scale: 1.35;
+        background: radial-gradient(circle at 35% 35%, #fff, #ffe08a 50%, #ffb347);
+        box-shadow: 0 0 90px 40px rgba(255, 200, 80, .6);
+    }
+    .tc-sky[data-mood="idle"] .tc-cloud,
+    .tc-sky[data-mood="sun"] .tc-cloud.c2 { opacity: .92; }
+    .tc-sky[data-mood="rain"] .tc-cloud { opacity: 1; background: #cdd7f2; }
+    .tc-sky[data-mood="rain"] .tc-rain { opacity: 1; }
+
+    .tc-sky-text, .tc-stats, .tc-suggest { position: relative; z-index: 1; }
+    .tc-sky-text { max-width: 62%; }
+    .tc-place { font-weight: 600; opacity: .9; margin-bottom: .4rem; }
+    .tc-verdict {
+        font-family: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.8rem, 5vw, 2.5rem);
+        line-height: 1.1;
+        margin: 0 0 .6rem;
+        color: inherit;
+    }
+    .tc-reason { font-size: 1.05rem; line-height: 1.5; margin: 0; }
+
+    .tc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: 1.5rem; }
+    .tc-stat { background: rgba(255, 255, 255, .9); color: #1d1b3a; border-radius: 16px; padding: .8rem 1rem; }
+    .tc-stat .lbl { font-size: .85rem; color: #5a5780; }
+    .tc-stat .val {
+        font-family: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+        font-size: 2rem; font-weight: 800; line-height: 1.1;
+    }
+    .tc-bar { height: 8px; background: #e2e5f3; border-radius: 99px; overflow: hidden; margin-top: .45rem; }
+    .tc-bar > div { height: 100%; border-radius: 99px; }
+
+    .tc-suggest { margin-top: .75rem; background: rgba(255, 255, 255, .92); color: #1d1b3a; border-radius: 16px; padding: .8rem 1rem; }
+    .tc-suggest button {
+        margin-top: .5rem; background: var(--violet); color: #fff; border: 0;
+        border-radius: 10px; padding: .4rem .9rem; font-weight: 600; cursor: pointer;
+    }
+    .tc-pop { animation: tc-pop .35s ease-out; }
+    @keyframes tc-pop { from { opacity: .3; } to { opacity: 1; } }
+
+    /* Week strip */
+    .tc-week-title { font-weight: 600; margin: 1.5rem 0 .6rem; }
+    .tc-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: .5rem; }
+    .tc-chip {
+        border: 3px solid transparent; border-radius: 16px; padding: .55rem .3rem;
+        text-align: center; font: inherit; font-size: .82rem; line-height: 1.35; cursor: pointer;
+    }
+    .tc-chip .ico { font-size: 1.6rem; }
+    .tc-chip.good    { background: #d9f7e4; color: #14532d; }
+    .tc-chip.bad     { background: #ffe0e0; color: #7f1d1d; }
+    .tc-chip.unknown { background: #fff1c9; color: #713f12; }
+    .tc-chip.selected { border-color: var(--violet); }
+
+    @media (max-width: 560px) {
+        .tc-form { grid-template-columns: 1fr; }
+        .tc-sky-text { max-width: 100%; }
+        .tc-cloud.c1 { display: none; }
+        .tc-sun { width: 150px; height: 150px; top: -50px; right: -50px; }
+        .tc-sky { padding-top: 1.5rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .tc-cloud, .tc-rain span, .tc-pop { animation: none; }
+    }
+</style>
+
+<div class="tc-page">
+    <h1 class="tc-title">Is it a good day for your trip?</h1>
+    <p class="tc-lede">Pick a city and a date. We check the rain and heat forecast for you.</p>
+
+    <div class="tc-form">
+        <div>
+            <label for="city">City</label>
+            <input id="city" class="form-control" list="city-list"
+                   placeholder="Start typing a city" autocomplete="off">
+            <datalist id="city-list">
+                {% for c in cities %}
+                <option value="{{ c }}"></option>
+                {% endfor %}
+            </datalist>
+        </div>
+        <div>
+            <label for="trip-date">Date</label>
+            <input type="date" id="trip-date" class="form-control">
+        </div>
+        <button id="check-btn" class="tc-btn">Check this day</button>
+    </div>
+
+    <section id="sky" class="tc-sky" data-mood="idle" aria-live="polite">
+        <div class="tc-scene" aria-hidden="true">
+            <div class="tc-sun"></div>
+            <div class="tc-cloud c1"></div>
+            <div class="tc-cloud c2"></div>
+            <div class="tc-rain" id="rain"></div>
+        </div>
+        <div class="tc-sky-text" id="sky-text">
+            <div class="tc-place" id="sky-place"></div>
+            <h2 class="tc-verdict" id="sky-title">Pick a day</h2>
+            <p class="tc-reason" id="sky-reason">Choose a city and a date, then press Check this day.</p>
+        </div>
+        <div class="tc-stats" id="sky-stats" style="display:none;"></div>
+        <div class="tc-suggest" id="sky-suggest" style="display:none;"></div>
+    </section>
+
+    <div id="week-wrap" style="display:none;">
+        <div class="tc-week-title">Next 7 days. Tap a day to check it.</div>
+        <div id="week" class="tc-week"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+    function localISO(d) {
+        const p = (n) => String(n).padStart(2, "0");
+        return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate());
+    }
+    function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text !== undefined) e.textContent = text;
+        return e;
+    }
+    function prettyDate(iso) {
+        return new Date(iso + "T00:00:00").toLocaleDateString("en-IN", {
+            weekday: "short", day: "numeric", month: "short",
+        });
+    }
+    function dayIcon(d) {
+        if (d.status === "unknown") return "🤔";
+        if (d.rain >= 60) return "🌧️";
+        if (d.temp > 35) return "🔥";
+        if (d.rain >= 30) return "⛅";
+        return "☀️";
+    }
+
+    const cityInput = document.getElementById("city");
+    const dateInput = document.getElementById("trip-date");
+    const checkBtn = document.getElementById("check-btn");
+    const sky = document.getElementById("sky");
+
+    // Rain drops, created once and only visible in the rain mood
+    const rain = document.getElementById("rain");
+    for (let i = 0; i < 26; i++) {
+        const s = document.createElement("span");
+        s.style.left = Math.random() * 100 + "%";
+        s.style.animationDelay = Math.random() * 1.2 + "s";
+        s.style.animationDuration = 0.7 + Math.random() * 0.6 + "s";
+        rain.appendChild(s);
+    }
+
+    const today = new Date();
+    const last = new Date();
+    last.setDate(today.getDate() + 6);
+    dateInput.min = localISO(today);
+    dateInput.max = localISO(last);
+    dateInput.value = localISO(today);
+
+    const firstCity = document.querySelector("#city-list option");
+    if (firstCity) cityInput.value = firstCity.value;
+
+    function loadWeek() {
+        const city = cityInput.value.trim();
+        const week = document.getElementById("week");
+        const wrap = document.getElementById("week-wrap");
+        week.innerHTML = "";
+        wrap.style.display = "none";
+        if (!city) return;
+
+        frappe.call({
+            method: "weather_planner.weather_planner.api.get_week",
+            args: { city: city },
+            callback: (r) => {
+                const days = r.message || [];
+                if (!days.length) return;
+                wrap.style.display = "block";
+                days.forEach((d) => {
+                    const chip = el("button", "tc-chip " + d.status);
+                    chip.type = "button";
+                    chip.dataset.date = d.date;
+                    chip.appendChild(el("div", "", prettyDate(d.date)));
+                    chip.appendChild(el("div", "ico", dayIcon(d)));
+                    chip.appendChild(el("div", "", d.status === "unknown" ? "No data" : d.temp + "°C"));
+                    chip.appendChild(el("div", "", d.status === "unknown" ? "" : d.rain + "% rain"));
+                    chip.addEventListener("click", () => {
+                        dateInput.value = d.date;
+                        check();
+                    });
+                    week.appendChild(chip);
+                });
+                markSelected();
+            },
+        });
+    }
+
+    function markSelected() {
+        document.querySelectorAll(".tc-chip").forEach((c) => {
+            c.classList.toggle("selected", c.dataset.date === dateInput.value);
+        });
+    }
+
+    function check() {
+        const city = cityInput.value.trim();
+        const date = dateInput.value;
+
+        if (!city || !date) {
+            show({ status: "unknown", reason: "Enter a city and pick a date." }, city, date);
+            return;
+        }
+        markSelected();
+        checkBtn.disabled = true;
+        checkBtn.textContent = "Checking...";
+
+        frappe.call({
+            method: "weather_planner.weather_planner.api.check_trip_date",
+            args: { city: city, date: date },
+            callback: (r) => { if (r.message) show(r.message, city, date); },
+            error: () => show({ status: "unknown", reason: "Something went wrong. Try again in a moment." }, city, date),
+            always: () => {
+                checkBtn.disabled = false;
+                checkBtn.textContent = "Check this day";
+            },
+        });
+    }
+
+    function moodFor(res) {
+        if (res.status === "good") return "sun";
+        if (res.status === "bad") return res.rain_probability >= 60 ? "rain" : "hot";
+        return "idle";
+    }
+
+    function show(res, city, date) {
+        const mood = moodFor(res);
+        sky.dataset.mood = mood;
+
+        const titles = {
+            sun: "Good day for a trip",
+            rain: "Rain is likely",
+            hot: "Too hot for comfort",
+            idle: "Can't tell yet",
+        };
+
+        document.getElementById("sky-place").textContent =
+            city && date ? city + ", " + prettyDate(date) : "";
+        document.getElementById("sky-title").textContent = titles[mood];
+        document.getElementById("sky-reason").textContent = res.reason;
+
+        // Stat tiles
+        const stats = document.getElementById("sky-stats");
+        stats.innerHTML = "";
+        if (res.temp !== undefined) {
+            const t1 = el("div", "tc-stat");
+            t1.appendChild(el("div", "lbl", "High temperature"));
+            t1.appendChild(el("div", "val", res.temp + "°C"));
+            stats.appendChild(t1);
+
+            const t2 = el("div", "tc-stat");
+            t2.appendChild(el("div", "lbl", "Chance of rain"));
+            t2.appendChild(el("div", "val", res.rain_probability + "%"));
+            const bar = el("div", "tc-bar");
+            const fill = el("div");
+            fill.style.width = Math.min(res.rain_probability, 100) + "%";
+            fill.style.background = res.rain_probability >= 60 ? "#ef4444"
+                : res.rain_probability >= 30 ? "#f59e0b" : "#22c55e";
+            bar.appendChild(fill);
+            t2.appendChild(bar);
+            stats.appendChild(t2);
+            stats.style.display = "grid";
+        } else {
+            stats.style.display = "none";
+        }
+
+        // Suggestion
+        const sug = document.getElementById("sky-suggest");
+        sug.innerHTML = "";
+        if (res.suggestion) {
+            sug.appendChild(el("div", "", res.suggestion));
+            if (res.suggestion_date) {
+                const b = el("button", "", "Check " + prettyDate(res.suggestion_date));
+                b.type = "button";
+                b.addEventListener("click", () => {
+                    dateInput.value = res.suggestion_date;
+                    check();
+                });
+                sug.appendChild(b);
+            }
+            sug.style.display = "block";
+        } else {
+            sug.style.display = "none";
+        }
+
+        // Small fade when the result changes
+        sky.classList.remove("tc-pop");
+        void sky.offsetWidth;
+        sky.classList.add("tc-pop");
+    }
+
+    checkBtn.addEventListener("click", check);
+    cityInput.addEventListener("change", () => { loadWeek(); });
+    dateInput.addEventListener("change", markSelected);
+
+    loadWeek();
+    if (cityInput.value) check();   // show today's verdict straight away
+</script>
+{% endblock %}

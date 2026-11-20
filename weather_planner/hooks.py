@@ -165,6 +165,10 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
+scheduler_events = {
+    "daily": ["weather_planner.weather_planner.api.sync_all"],
+}
+
 # scheduler_events = {
 # 	"all": [
 # 		"weather_planner.tasks.all"
